@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live News - TruthLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="news-body">
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo"><i class="fas fa-search"></i> TruthLens</h1>
+
+            <!-- Hamburger Menu Button -->
+                <button class="hamburger" id="hamburger">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('history') }}">History</a></li>
+                <li><a href="{{ url_for('live_news') }}" class="active">Live News</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="news-container">
+        <div class="news-header">
+            <h1><i class="fas fa-broadcast-tower"></i> Live News Analysis</h1>
+            <p>Analyze real-time news headlines from trusted sources</p>
+        </div>
+
+<div class="news-container">
+    {% if articles %}
+        <div class="articles-grid">
+            {% for article in articles %}
+                {% if article.title and article.title != '[Removed]' %}
+                <div class="article-card">
+                    {% if article.urlToImage %}
+                        <div class="article-image">
+                            <img src="{{ article.urlToImage }}" alt="Article image" loading="lazy" onerror="this.style.display='none';">
+                        </div>
+                    {% endif %}
+                    <div class="article-content">
+                        <h3 class="article-title">{{ article.title }}</h3>
+                        <p class="article-description">{{ article.description or 'No description available.' }}</p>
+                        <div class="article-meta">
+                            <span class="article-source">
+                                <i class="fas fa-newspaper"></i>
+                                {{ article.source.name }}
+                            </span>
+                            <span class="article-time">
+                                <i class="fas fa-clock"></i>
+                                {{ article.publishedAt[:19].replace('T', ' ') if article.publishedAt else 'Unknown time' }}
+                            </span>
+                        </div>
+                        <div class="article-actions">
+                            <button 
+                                class="analyze-btn" 
+                                data-headline="{{ article.title | replace('"', '&quot;') | replace("'", '&#39;') }}"
+                                onclick="analyzeHeadline(this)"
+                            >
+                                <i class="fas fa-search"></i>
+                                Analyze
+                            </button>
+                            <a href="{{ article.url }}" target="_blank" class="read-btn">
+                                <i class="fas fa-external-link-alt"></i>
+                                Read Full
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="no-data">
+            <i class="fas fa-exclamation-circle"></i>
+            <h3>No news articles available</h3>
+            <p>Unable to fetch live news at the moment. Please try again later.</p>
+        </div>
+    {% endif %}
+</div>
+
+    </div>
+
+    <!-- Analysis Modal -->
+    <div id="analysisModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Analysis Result</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="modalResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    function analyzeHeadline(button, headline) {
+        // Get the actual headline from the button's data attribute instead of parameter
+        const headlineText = button.getAttribute('data-headline');
+        
+        if (!headlineText) {
+            alert('No headline available for analysis');
+            return;
+        }
+        
+        const modal = document.getElementById('analysisModal');
+        const modalResult = document.getElementById('modalResult');
+        
+        modalResult.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Analyzing...</div>';
+        modal.style.display = 'block';
+        
+        // Disable button during analysis
+        button.disabled = true;
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analyzing...';
+        
+        fetch('/predict', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `headline=${encodeURIComponent(headlineText)}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                modalResult.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+            } else {
+                const resultClass = data.result.toLowerCase();
+                const icon = data.result === 'REAL' ? 'check-circle' : 'times-circle';
+                
+                modalResult.innerHTML = `
+                    <div class="result-display">
+                        <div class="result-icon ${resultClass}">
+                            <i class="fas fa-${icon}"></i>
+                        </div>
+                        <div class="result-text">
+                            <h4>${data.result}</h4>
+                            <p>Confidence: ${data.confidence}</p>
+                        </div>
+                        <div class="analyzed-headline">
+                            <strong>Headline:</strong> ${headlineText}
+                        </div>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            modalResult.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+        })
+        .finally(() => {
+            // Re-enable button
+            button.disabled = false;
+            button.innerHTML = originalText;
+        });
+    }
+    
+    // Initialize all analyze buttons when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const analyzeButtons = document.querySelectorAll('.analyze-btn');
+        analyzeButtons.forEach((button, index) => {
+            console.log(`Button ${index + 1}:`, button.getAttribute('data-headline')); // Debug log
+        });
+    });
+    
+    // Modal functionality
+    const modal = document.getElementById('analysisModal');
+    const span = document.getElementsByClassName('close')[0];
+    
+    if (span) {
+        span.onclick = function() {
+            modal.style.display = 'none';
+        }
+    }
+    
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+        // Debug function to test all buttons
+    function debugAnalyzeButtons() {
+        const buttons = document.querySelectorAll('.analyze-btn');
+        console.log(`Found ${buttons.length} analyze buttons`);
+        
+        buttons.forEach((button, index) => {
+            const headline = button.getAttribute('data-headline');
+            console.log(`Button ${index + 1}:`);
+            console.log(`  - Has headline: ${!!headline}`);
+            console.log(`  - Headline length: ${headline ? headline.length : 0}`);
+            console.log(`  - Has onclick: ${!!button.onclick}`);
+            console.log(`  - Is disabled: ${button.disabled}`);
+            
+            if (!headline || headline.length < 5) {
+                button.style.backgroundColor = '#ff4444';
+                button.innerHTML = '<i class="fas fa-exclamation"></i> Invalid';
+                button.disabled = true;
+            }
+        });
+    }
+
+    
+    
+    // Run debug on page load
+    document.addEventListener('DOMContentLoaded', debugAnalyzeButtons);
+</script>
+
+</body>
+</html>

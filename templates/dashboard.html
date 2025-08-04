@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TruthLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dashboard-body">
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo"><i class="fas fa-search"></i> TruthLens</h1>
+
+            <!-- Hamburger Menu Button -->
+                <button class="hamburger" id="hamburger">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}" class="active">Dashboard</a></li>
+                <li><a href="{{ url_for('history') }}">History</a></li>
+                <li><a href="{{ url_for('live_news') }}">Live News</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+            <p>Welcome back, {{ current_user.username }}!</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ total_predictions }}</h3>
+                    <p>Total Predictions</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ "%.1f"|format(accuracy_percentage) }}%</h3>
+                    <p>Accuracy Rate</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-thumbs-up"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ accuracy_stats.accurate }}</h3>
+                    <p>Accurate Predictions</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-thumbs-down"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ accuracy_stats.wrong }}</h3>
+                    <p>Wrong Predictions</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-content">
+            <div class="chart-section">
+                <div class="chart-card">
+                    <h3><i class="fas fa-chart-pie"></i> Accuracy Overview</h3>
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+
+            <div class="recent-section">
+                <div class="recent-card">
+                    <h3><i class="fas fa-clock"></i> Recent Feedback</h3>
+                    {% if recent_feedback %}
+                        <div class="feedback-list">
+                            {% for feedback in recent_feedback %}
+                                <div class="feedback-item">
+                                    <div class="feedback-content">
+                                        <p class="feedback-headline">{{ feedback.headline[:100] }}{% if feedback.headline|length > 100 %}...{% endif %}</p>
+                                        <div class="feedback-meta">
+                                            <span class="feedback-type {{ feedback.feedback }}">
+                                                <i class="fas fa-{% if feedback.feedback == 'accurate' %}thumbs-up{% else %}thumbs-down{% endif %}"></i>
+                                                {{ feedback.feedback.title() }}
+                                            </span>
+                                            <span class="feedback-time">{{ feedback.timestamp[:19] }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="no-data">No recent feedback available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <a href="{{ url_for('export_csv') }}" class="export-btn">
+                <i class="fas fa-download"></i>
+                Export Data as CSV
+            </a>
+        </div>
+    </div>
+
+<script>
+    // Safe data extraction with error handling
+    let accurateCount = 0;
+    let wrongCount = 0;
+    
+    try {
+        accurateCount = parseInt('{{ accuracy_stats.accurate | default(0) }}') || 0;
+        wrongCount = parseInt('{{ accuracy_stats.wrong | default(0) }}') || 0;
+    } catch (e) {
+        console.error('Error parsing chart data:', e);
+    }
+    
+    console.log('Chart data:', { accurateCount, wrongCount }); // Debug log
+    
+    const chartContainer = document.getElementById('accuracyChart');
+    
+    if (chartContainer && (accurateCount > 0 || wrongCount > 0)) {
+        try {
+            const ctx = chartContainer.getContext('2d');
+            const accuracyChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Accurate', 'Wrong'],
+                    datasets: [{
+                        data: [accurateCount, wrongCount],
+                        backgroundColor: ['#4CAF50', '#f44336'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#ffffff',
+                                padding: 20
+                            }
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.error('Error creating chart:', e);
+            chartContainer.parentElement.innerHTML = 
+                '<p style="color: white; text-align: center; padding: 2rem;">Error loading chart. Please refresh the page.</p>';
+        }
+    } else if (chartContainer) {
+        chartContainer.parentElement.innerHTML = 
+            '<p style="color: white; text-align: center; padding: 2rem;">No feedback data available yet.<br>Make some predictions and provide feedback to see your accuracy chart!</p>';
+    }
+
+    
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>History - TruthLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="history-body">
+    <nav class="navbar">
+        <div class="nav-container">
+            <h1 class="nav-logo"><i class="fas fa-search"></i> TruthLens</h1>
+
+            <!-- Hamburger Menu Button -->
+                <button class="hamburger" id="hamburger">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('history') }}" class="active">History</a></li>
+                <li><a href="{{ url_for('live_news') }}">Live News</a></li>
+                <li><a href="{{ url_for('logout') }}">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="history-container">
+        <div class="history-header">
+            <h1><i class="fas fa-history"></i> Prediction History</h1>
+            <p>View all your previous fake news predictions</p>
+        </div>
+
+        <div class="search-section">
+            <form method="GET" class="search-form">
+                <div class="search-input-group">
+                    <i class="fas fa-search"></i>
+                    <input type="text" name="search" placeholder="Search headlines..." value="{{ search_query }}">
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="history-content">
+            {% if predictions %}
+                <div class="predictions-grid">
+                    {% for prediction in predictions %}
+                        <div class="prediction-card">
+                            <div class="prediction-header">
+                                <div class="prediction-result {{ prediction.prediction.lower() }}">
+                                    <i class="fas fa-{% if prediction.prediction == 'REAL' %}check-circle{% else %}times-circle{% endif %}"></i>
+                                    {{ prediction.prediction }}
+                                </div>
+                                <div class="prediction-confidence">
+                                    {{ "%.1f"|format(prediction.confidence) }}%
+                                </div>
+                            </div>
+                            <div class="prediction-content">
+                                <p class="prediction-headline">{{ prediction.headline }}</p>
+                                <div class="prediction-meta">
+                                    <span class="prediction-time">
+                                        <i class="fas fa-clock"></i>
+                                        {{ prediction.timestamp[:19].replace('T', ' ') }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="no-data">
+                    <i class="fas fa-search"></i>
+                    <h3>No predictions found</h3>
+                    <p>{% if search_query %}No results for "{{ search_query }}"{% else %}You haven't made any predictions yet{% endif %}</p>
+                    <a href="{{ url_for('index') }}" class="cta-btn">Make Your First Prediction</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    
+</body>
+</html>

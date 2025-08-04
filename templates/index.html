@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TruthLens - Fake News Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="home-body">
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <h1 class="nav-logo">
+                    <i class="fas fa-search"></i> TruthLens
+                </h1>
+                
+                <!-- Hamburger Menu Button -->
+                <button class="hamburger" id="hamburger">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                
+                <!-- Navigation Menu -->
+                <ul class="nav-menu" id="navMenu">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>
+                            <i class="fas fa-home"></i> Home
+                        </a></li>
+                        <li><a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a></li>
+                        <li><a href="{{ url_for('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>
+                            <i class="fas fa-history"></i> History
+                        </a></li>
+                        <li><a href="{{ url_for('live_news') }}" {% if request.endpoint == 'live_news' %}class="active"{% endif %}>
+                            <i class="fas fa-broadcast-tower"></i> Live News
+                        </a></li>
+                        <li><a href="{{ url_for('logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('login') }}">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a></li>
+                        <li><a href="{{ url_for('register') }}">
+                            <i class="fas fa-user-plus"></i> Register
+                        </a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>        
+    </header>
+
+    <main>
+        <div class="hero-section">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    <i class="fas fa-shield-alt"></i>
+                    Detect Fake News with AI
+                </h1>
+                <p class="hero-subtitle">
+                    Enter a news headline and let our advanced machine learning model determine if it's real or fake
+                </p>
+                
+                {% if current_user.is_authenticated %}
+                    <div class="prediction-container">
+                        <form id="predictionForm" class="prediction-form">
+                            <div class="input-group">
+                                <i class="fas fa-newspaper input-icon"></i>
+                                <textarea id="headline" name="headline" placeholder="Enter news headline here..." required></textarea>
+                            </div>
+                            <button type="submit" class="predict-btn">
+                                <i class="fas fa-search"></i>
+                                Analyze News
+                            </button>
+                        </form>
+                        
+                        <div id="result" class="result-container" style="display: none;">
+                            <div class="result-card">
+                                <div id="resultIcon" class="result-icon"></div>
+                                <div id="resultText" class="result-text"></div>
+                                <div id="confidenceText" class="confidence-text"></div>
+                                
+                                <div class="feedback-section" style="display: none;">
+                                    <p>Was this prediction accurate?</p>
+                                    <div class="feedback-buttons">
+                                        <button class="feedback-btn accurate" onclick="submitFeedback('accurate')">
+                                            <i class="fas fa-thumbs-up"></i> Accurate
+                                        </button>
+                                        <button class="feedback-btn wrong" onclick="submitFeedback('wrong')">
+                                            <i class="fas fa-thumbs-down"></i> Wrong
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="auth-prompt">
+                        <p>Please <a href="{{ url_for('login') }}">login</a> to start detecting fake news</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="features-section">
+            <div class="container">
+                <h2>Why Choose TruthLens?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <i class="fas fa-brain"></i>
+                        <h3>AI-Powered</h3>
+                        <p>Advanced machine learning algorithms trained on extensive datasets</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-bolt"></i>
+                        <h3>Real-time Analysis</h3>
+                        <p>Get instant results with confidence scores for every prediction</p>
+                    </div>
+                    <div class="feature-card">
+                        <i class="fas fa-chart-line"></i>
+                        <h3>Track Progress</h3>
+                        <p>Monitor your usage statistics and prediction accuracy</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+    </main>
+
+
+    <footer>
+        <div class="footer-container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>TruthLens</h3>
+                    <p>Fighting misinformation with AI technology. See through the lies, trust the lens.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Index</a>
+                    <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
+                    <a href="{{ url_for('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>History</a>
+                    <a href="{{ url_for('live_news') }}" {% if request.endpoint == 'live_news' %}class="active"{% endif %}>Live_news</a>
+                </div>
+                <div class="footer-section">
+                    <h3>Resources</h3>
+                    <a href="https://www.politifact.com" target="_blank">PolitiFact</a>
+                    <a href="https://www.snopes.com" target="_blank">Snopes</a>
+                    <a href="https://www.factcheck.org" target="_blank">FactCheck.org</a>
+                    <a href="https://www.altnews.in" target="_blank">AltNews</a>
+                </div>
+            </div>
+            <div style="border-top: 1px solid #334155; padding-top: 1rem; margin-top: 2rem;">
+                <p>&copy; 2025 TruthLens. All rights reserved. | Built with AI for Truth</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
