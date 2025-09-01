@@ -84,7 +84,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,
     logging_dir="./logs",
     logging_steps=10,
-    evaluation_strategy="epoch",
+    eval_strategy="epoch",
     save_strategy="epoch"
 )
 
@@ -111,3 +111,4 @@ print(classification_report(val_df["label"].tolist(), preds))
 model.save_pretrained("./bert_model")
 tokenizer.save_pretrained("./bert_tokenizer")
 print("📦 Saved to: bert_model/ and bert_tokenizer/")
+
